@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Docker
+postgres_data/
+redis_data/
+
+# OS
+Thumbs.db
+
+# LinkedIn — persistent Chrome profiles per account.  Each subdir is a full
+# Chromium user-data-dir (cookies, cache, localStorage, fingerprint state)
+# bound to one LinkedInAccount UUID.  NEVER commit: it contains the user's
+# active li_at cookie + browser state.  Path mirrors LINKEDIN_PROFILES_DIR.
+backend/_linkedin_profiles/
+_linkedin_profiles/
+celerybeat-schedule
+backend/celerybeat-schedule
