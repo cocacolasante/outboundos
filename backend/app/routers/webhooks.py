@@ -215,7 +215,7 @@ async def unsubscribe(
 # missing/invalid signature → 401 (no work done).
 
 
-def _verify_unipile_auth(header_value: str | None) -> bool:
+def _verify_unipile_auth(header_value: str | None, *, expected: str | None = None) -> bool:
     """Compare the inbound auth header against the configured shared secret.
 
     Unipile doesn't HMAC-sign request bodies — when creating a webhook
@@ -224,7 +224,8 @@ def _verify_unipile_auth(header_value: str | None) -> bool:
     constant-time compare the value here.  See the Unipile docs section
     "Authentication" on the Webhooks page.
     """
-    expected = settings.UNIPILE_WEBHOOK_SECRET
+    if expected is None:
+        expected = settings.UNIPILE_WEBHOOK_SECRET
     if not expected:
         # No secret configured → refuse everything to avoid running on
         # forged payloads.  Set UNIPILE_WEBHOOK_SECRET in .env and add the
@@ -505,13 +506,16 @@ async def unipile_webhook(
     request: Request,
     db: AsyncSession = Depends(get_service_db),
 ) -> dict[str, Any]:
-    """Receive Unipile push events.
+    """Receive Unipile push events (PLATFORM workspace).
 
     Auth: Unipile uses a static shared-secret-in-a-header pattern — when
     creating the webhook you add a custom header (default
     ``X-Unipile-Auth``) and Unipile echoes it on every delivery.  We
     constant-time compare against ``settings.UNIPILE_WEBHOOK_SECRET``.
     Missing or wrong value → 401, no DB writes.
+
+    BYOK tenants use ``/webhooks/unipile/{tenant_id}`` below — their own
+    Unipile workspace, their own per-tenant secret.
 
     Idempotency: Unipile delivers at-least-once.  Every payload has an
     event id (in the ``id`` / ``event_id`` / ``webhook_id`` field
@@ -531,6 +535,38 @@ async def unipile_webhook(
     auth_value = request.headers.get(settings.UNIPILE_WEBHOOK_AUTH_HEADER.lower())
     if not _verify_unipile_auth(auth_value):
         raise HTTPException(status_code=401, detail="invalid auth header")
+    return await _process_unipile_payload(raw, db)
+
+
+@router.post("/webhooks/unipile/{tenant_id}")
+async def unipile_tenant_webhook(
+    tenant_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_service_db),
+) -> dict[str, Any]:
+    """Per-tenant Unipile webhook (BYOK workspaces).
+
+    Registered on the TENANT's Unipile workspace by
+    ``POST /settings/integrations/unipile/register-webhooks`` — the URL
+    carries the tenant, the auth header carries that tenant's own
+    webhook secret (stored inside their encrypted Unipile creds blob).
+    Processing is identical to the platform route: rows are resolved
+    globally by Unipile ids on the service session, which is safe
+    because ``unipile_account_id`` is globally unique.
+    """
+    from app.services.tenant_keys import get_provider_creds
+
+    raw = await request.body()
+    auth_value = request.headers.get(settings.UNIPILE_WEBHOOK_AUTH_HEADER.lower())
+    creds = await get_provider_creds(db, "unipile", tenant_id=tenant_id)
+    expected = getattr(creds, "webhook_secret", "") if creds else ""
+    if not _verify_unipile_auth(auth_value, expected=expected):
+        raise HTTPException(status_code=401, detail="invalid auth header")
+    return await _process_unipile_payload(raw, db)
+
+
+async def _process_unipile_payload(raw: bytes, db: AsyncSession) -> dict[str, Any]:
+    """Shared dedup + dispatch for both Unipile webhook routes."""
     try:
         payload = json.loads(raw)
     except Exception as exc:

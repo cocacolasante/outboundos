@@ -19,11 +19,24 @@ from app.database import Base
 from app.tenancy.mixin import TenantMixin
 
 
-class FundingSourceState(Base):
-    __tablename__ = "funding_source_state"
+class FundingSourceState(TenantMixin, Base):
+    """PER-TENANT since Phase 8 (was a global per-feed singleton): each
+    workspace owns its feed toggles, config, and cursor — the collectors
+    fan out per tenant and each fetches independently (the feeds are
+    free public APIs; duplicate fetches beat shared-cursor coupling)."""
 
+    __tablename__ = "funding_source_state"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "source",
+                         name="uq_funding_state_tenant_source",
+                         postgresql_nulls_not_distinct=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
+    )
     # 'usaspending' | 'irs_bmf'
-    source: Mapped[str] = mapped_column(Text, primary_key=True)
+    source: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     # Runtime on/off, editable from Settings → Discovery (migration 0033).
     # NULL = not yet seeded; the worker/API seed it from the env default.
     enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)

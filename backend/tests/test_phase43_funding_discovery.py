@@ -487,7 +487,7 @@ async def test_usaspending_poll_uses_trailing_window(db_session, monkeypatch):
     assert captured["until"] == today
     assert captured["since"] == today - timedelta(days=30)
 
-    state = await db_session.get(FundingSourceState, "usaspending")
+    state = (await db_session.execute(select(FundingSourceState).where(FundingSourceState.source == "usaspending"))).scalars().first()
     assert state is not None
     assert state.cursor["last_window_start"] == (today - timedelta(days=30)).isoformat()
     assert state.cursor["last_run_date"] == today.isoformat()
@@ -541,7 +541,7 @@ async def test_irs_bmf_first_run_guard_bounds_window(db_session, monkeypatch):
     assert captured["states"] == ["PA"]
     assert result["since_ruling"] == _yyyymm(today, 2)
 
-    state = await db_session.get(FundingSourceState, "irs_bmf")
+    state = (await db_session.execute(select(FundingSourceState).where(FundingSourceState.source == "irs_bmf"))).scalars().first()
     assert state.cursor["last_file_month"] == _yyyymm(today)
     assert state.last_run_status == "done"
 
@@ -624,7 +624,7 @@ async def test_funding_sources_list_seeds_from_env(client, db_session, monkeypat
     assert by_src["usaspending"]["signal_count"] == 0
 
     # Seeding persisted the rows.
-    state = await db_session.get(FundingSourceState, "usaspending")
+    state = (await db_session.execute(select(FundingSourceState).where(FundingSourceState.source == "usaspending"))).scalars().first()
     assert state is not None and state.enabled is True
 
 
@@ -643,7 +643,7 @@ async def test_funding_source_patch_updates_config(client, db_session, monkeypat
     assert body["config"]["ruling_lookback_months"] == 3
     assert body["config"]["states"] == ["PA", "NJ", "NY"]
 
-    state = await db_session.get(FundingSourceState, "irs_bmf")
+    state = (await db_session.execute(select(FundingSourceState).where(FundingSourceState.source == "irs_bmf"))).scalars().first()
     await db_session.refresh(state)
     assert state.enabled is True
     assert state.config["states"] == ["PA", "NJ", "NY"]
@@ -1015,9 +1015,13 @@ async def test_funding_stop_endpoint_marks_stopped(client, db_session, monkeypat
 
 
 async def test_funding_stop_endpoint_noop_keeps_status(client, db_session, monkeypatch):
+    from tests.conftest import BOOTSTRAP_TENANT_ID
+
+    # The router resolves state for the AMBIENT tenant (per-tenant since
+    # Phase 8) — seed the row under the client fixture's tenant.
     db_session.add(FundingSourceState(
         source="usaspending", enabled=True, config={"lookback_days": 7},
-        cursor={}, last_run_status="done",
+        cursor={}, last_run_status="done", tenant_id=BOOTSTRAP_TENANT_ID,
     ))
     await db_session.commit()
     monkeypatch.setattr(

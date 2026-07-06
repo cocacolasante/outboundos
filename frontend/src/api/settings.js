@@ -25,3 +25,8 @@ export async function testIntegration(provider) {
 export async function deleteIntegration(provider) {
   await client.delete(`/settings/integrations/${provider}`);
 }
+
+export async function registerUnipileWebhooks() {
+  const { data } = await client.post('/settings/integrations/unipile/register-webhooks');
+  return data;
+}

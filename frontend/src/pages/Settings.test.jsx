@@ -20,6 +20,7 @@ vi.mock('../api/settings.js', () => ({
   saveIntegration: vi.fn(),
   testIntegration: vi.fn(),
   deleteIntegration: vi.fn(),
+  registerUnipileWebhooks: vi.fn(),
 }));
 vi.mock('../api/auth.js', () => ({
   getMe: vi.fn().mockResolvedValue({

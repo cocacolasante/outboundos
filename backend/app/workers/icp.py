@@ -23,7 +23,7 @@ from app.models import (
 )
 from app.services import agent_core, icp_builder, lookalike_discovery, notifications
 from app.workers.celery_app import celery_app
-from app.tenancy.context import with_default_tenant
+from app.tenancy.context import for_all_tenants
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ async def _refresh_profile_async() -> dict[str, Any]:
 
 @celery_app.task(name="icp.refresh_profile")
 def refresh_profile() -> dict[str, Any]:
-    return asyncio.run(with_default_tenant(_refresh_profile_async))
+    return asyncio.run(for_all_tenants(_refresh_profile_async))
 
 
 async def discover_session(session: AsyncSession) -> dict[str, Any]:
@@ -106,4 +106,4 @@ async def _discover_async() -> dict[str, Any]:
 
 @celery_app.task(name="icp.discover")
 def discover() -> dict[str, Any]:
-    return asyncio.run(with_default_tenant(_discover_async))
+    return asyncio.run(for_all_tenants(_discover_async))

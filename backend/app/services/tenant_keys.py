@@ -65,6 +65,10 @@ class HunterCreds:
 class UnipileCreds:
     dsn: str
     api_key: str
+    # Per-tenant inbound webhook secret (Phase 8): registered onto the
+    # tenant's Unipile workspace; the /webhooks/unipile/{tenant_id}
+    # route verifies deliveries against it.
+    webhook_secret: str = ""
 
 
 _PARSERS = {
@@ -78,6 +82,7 @@ _PARSERS = {
     "hunter": lambda b: HunterCreds(api_key=b.get("api_key", "")),
     "unipile": lambda b: UnipileCreds(
         dsn=b.get("dsn", ""), api_key=b.get("api_key", ""),
+        webhook_secret=b.get("webhook_secret", ""),
     ),
 }
 
@@ -167,6 +172,32 @@ async def ambient_creds(provider: str):
     if cache is not None:
         cache[cache_key] = creds
     return creds
+
+
+async def ensure_unipile_webhook_secret(session: AsyncSession, tenant_id: uuid.UUID) -> str:
+    """Return the tenant's Unipile webhook secret, generating + persisting
+    one into the encrypted blob on first use.  Lives here so the
+    decrypt→mutate→re-encrypt round-trip stays inside the allowlisted
+    module."""
+    import secrets as _secrets
+
+    from app.models.tenant_keys import ProviderKind, TenantProviderKey
+
+    q = select(TenantProviderKey).where(
+        TenantProviderKey.provider == ProviderKind.UNIPILE,
+        TenantProviderKey.tenant_id == tenant_id,
+    )
+    row = (await session.execute(q.limit(1))).scalars().first()
+    if row is None:
+        raise ValueError("Unipile is not configured for this workspace")
+    blob = json.loads(encryption.decrypt(row.encrypted_credentials))
+    secret = blob.get("webhook_secret") or ""
+    if not secret:
+        secret = _secrets.token_hex(32)
+        blob["webhook_secret"] = secret
+        row.encrypted_credentials = encryption.encrypt(json.dumps(blob))
+        await session.commit()
+    return secret
 
 
 def masked_preview(encrypted: str, provider: str) -> str:

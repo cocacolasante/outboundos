@@ -22,8 +22,50 @@ sequences + LinkedIn outreach**, broken into M1–M5 in the roadmap.
 
 ## Where we are
 
-- **Last completed:** **Multi-tenant SaaS conversion — Phase 7
-  (hardening & ship; migration 0050) — CONVERSION COMPLETE, all 7 phases
+- **Last completed:** **Multi-tenant SaaS conversion — Phase 8 follow-on
+  (per-tenant Unipile webhooks + per-tenant collectors; migration
+  0051).**  Closes the two functional BYOK gaps flagged at ship.
+  - **Per-tenant Unipile webhooks (the inbound half of BYOK):**
+    - Unipile creds blob gains `webhook_secret`;
+      `tenant_keys.ensure_unipile_webhook_secret` generates+persists it
+      (decrypt→mutate→re-encrypt stays in the allowlisted module).
+    - `services/unipile_webhooks.register_tenant_webhooks` creates the 3
+      canonical webhooks (messaging/account_status/users) on the
+      TENANT's workspace pointing at `/webhooks/unipile/{tenant_id}`
+      with their secret — idempotent (deletes any webhook pointing at
+      OUR base URL first, so tunnel-host changes converge).
+    - `POST /settings/integrations/unipile/register-webhooks` +
+      a "Register webhooks" button on the Unipile card.
+    - `routers/webhooks.py`: the platform route's body extracted into
+      `_process_unipile_payload`; new
+      `POST /webhooks/unipile/{tenant_id}` verifies the header against
+      THAT tenant's stored secret (`get_provider_creds` on the service
+      session) then runs the identical dedup+dispatch — safe because
+      row resolution is by globally-unique unipile ids.  Platform route
+      unchanged (legacy/env secret).
+  - **Per-tenant collectors:** digest, icp.refresh/discover, the funding
+    polls and all 9 intent tasks switched `with_default_tenant` →
+    `for_all_tenants` (bodies unchanged; RLS scopes per tenant in prod;
+    tenants without data/keys are cheap no-ops).  Per-tenant digest
+    dedup rides the existing UNIQUE(tenant, dedup_key).
+  - **`funding_source_state` is per-tenant (0051):** was a global
+    per-feed singleton (PK=source) → surrogate UUID PK + TenantMixin +
+    UNIQUE(tenant_id, source) NND + NOT NULL + RLS inline; rows carried
+    to the oldest tenant.  The two get-or-create lookups (worker +
+    signals router) now select by (ambient tenant, source).  **Test
+    gotcha (the recurring mixed-context one):** a state row seeded via
+    `db_session` (NULL tenant) is invisible to router lookups running
+    as the bootstrap tenant — seed with
+    `tenant_id=BOOTSTRAP_TENANT_ID`.
+  - Tests: 7 new (`test_phase68_tenant_webhooks.py`: secret
+    stable-once, tenant-route auth ok/wrong/unknown-tenant 401, dedup
+    parity, registration endpoint persists+uses the blob secret,
+    MockTransport registration deletes-ours-creates-3, per-tenant
+    funding state isolation) + phase43 lookups/seed repointed.
+    Dev DB at **0051**.  Tests: **backend 1305, frontend 448**.
+
+- **Previously:** **Multi-tenant SaaS conversion — Phase 7
+  (hardening & ship; migration 0050) — all 7 planned phases
   shipped.**  Deploy runbook: [`docs/deploy.md`](docs/deploy.md).
   - **Isolation suite expanded** (`test_phase63`, now 10 tests): worker-
     context isolation under RLS as the non-owner role (`run_for_tenant`
@@ -3618,7 +3660,7 @@ honest result; the regex + worker plumbing is verified by unit tests):
 $0 marginal Anthropic spend.  Migration 0020 + 28 new backend tests +
 2 new frontend tests._
 
-_Backend tests: **1298 passing**.  Frontend tests: **448 passing**._
+_Backend tests: **1305 passing**.  Frontend tests: **448 passing**._
 
 > **🚀 Starting on a fresh dev box?** Jump to
 > [Unipile setup runbook](#unipile-setup-runbook-any-computer-local-dev)

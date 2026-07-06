@@ -214,6 +214,39 @@ async def _probe_provider(provider: str, creds) -> None:
         r.raise_for_status()
 
 
+class WebhookRegistrationResult(BaseModel):
+    created: list[str]
+    deleted_stale: int
+    request_url: str
+
+
+@router.post("/integrations/unipile/register-webhooks",
+             response_model=WebhookRegistrationResult)
+async def register_unipile_webhooks(db: AsyncSession = Depends(get_db)) -> WebhookRegistrationResult:
+    """Register our inbound webhooks on THIS TENANT's Unipile workspace
+    (Phase 8 — closes the BYOK inbound half: without these, the tenant's
+    LinkedIn replies / connection-accepts never reach us).  Idempotent —
+    safe to re-run after a WEBHOOK_BASE_URL change."""
+    from app.services.tenant_keys import ensure_unipile_webhook_secret
+    from app.services.unipile_webhooks import register_tenant_webhooks
+
+    tid = current_tenant_id.get()
+    creds = await get_provider_creds(db, "unipile", tenant_id=tid)
+    if creds is None or not creds.dsn:
+        raise HTTPException(status_code=400, detail="Unipile is not configured for this workspace")
+    secret = await ensure_unipile_webhook_secret(db, tid)
+    try:
+        result = await register_tenant_webhooks(creds, tid, secret)
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Unipile webhook API error: {exc.response.status_code}",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return WebhookRegistrationResult(**result)
+
+
 @router.post("/integrations/{provider}/test", response_model=IntegrationStatus)
 async def test_integration(provider: str, db: AsyncSession = Depends(get_db)) -> IntegrationStatus:
     kind = _provider_or_404(provider)

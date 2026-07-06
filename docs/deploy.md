@@ -76,6 +76,17 @@ the runtime is on the owner DSN — fix `APP_DATABASE_URL` before serving
 traffic.  The definitive check is the isolation suite:
 `docker compose run --rm backend pytest tests/test_phase63_rls_isolation.py`.
 
+## 2b. Per-tenant Unipile webhooks (Phase 8)
+
+Each tenant's own Unipile workspace needs OUR webhooks registered on it,
+or their LinkedIn replies / connection-accepts never reach the app.
+Self-service: Settings → Integrations → Unipile → **Register webhooks**
+(idempotent — re-run after any `WEBHOOK_BASE_URL` change).  Creates the
+three webhooks pointing at `/webhooks/unipile/{tenant_id}` with a
+per-tenant secret stored in the tenant's encrypted creds blob.  The
+platform-level `/webhooks/unipile` + `UNIPILE_WEBHOOK_SECRET` remain for
+a workspace you operate yourself (dev / legacy).
+
 ## 3. Stripe webhook
 
 Dashboard → Webhooks → endpoint `https://<host>/webhooks/stripe`, events:

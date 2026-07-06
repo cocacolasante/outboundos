@@ -37,7 +37,7 @@ from app.services import agent_core, notifications
 from app.services.funding_sources import enrichment, irs_bmf, usaspending
 from app.services.funding_sources.base import DiscoveredOrg
 from app.workers.celery_app import celery_app
-from app.tenancy.context import for_all_tenants, with_default_tenant
+from app.tenancy.context import for_all_tenants
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +213,13 @@ async def _get_or_create_state(session: AsyncSession, source: str) -> FundingSou
     env defaults when unset (first run, or NULL after the 0033 migration).
     The env vars are the SEED; the DB row is authoritative afterward, so
     the Settings → Discovery panel can override them live."""
-    state = await session.get(FundingSourceState, source)
+    from app.tenancy.context import current_tenant_id
+
+    q = select(FundingSourceState).where(FundingSourceState.source == source)
+    tid = current_tenant_id.get()
+    if tid is not None:
+        q = q.where(FundingSourceState.tenant_id == tid)
+    state = (await session.execute(q.limit(1))).scalars().first()
     if state is None:
         state = FundingSourceState(source=source, cursor={})
         session.add(state)
@@ -539,7 +545,7 @@ async def _poll_usaspending_async() -> dict[str, Any]:
 # dies mid-run the periodic beat simply re-runs it next tick.
 @celery_app.task(name="funding.poll_usaspending", acks_late=False)
 def poll_usaspending() -> dict[str, Any]:
-    return asyncio.run(with_default_tenant(_poll_usaspending_async))
+    return asyncio.run(for_all_tenants(_poll_usaspending_async))
 
 
 # ---------------------------------------------------------------------------
@@ -606,7 +612,7 @@ async def _poll_irs_bmf_async() -> dict[str, Any]:
 
 @celery_app.task(name="funding.poll_irs_bmf", acks_late=False)
 def poll_irs_bmf() -> dict[str, Any]:
-    return asyncio.run(with_default_tenant(_poll_irs_bmf_async))
+    return asyncio.run(for_all_tenants(_poll_irs_bmf_async))
 
 
 # ---------------------------------------------------------------------------

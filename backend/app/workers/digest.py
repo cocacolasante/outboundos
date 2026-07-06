@@ -35,7 +35,7 @@ from app.models import (
 )
 from app.services import agent_core, notifications
 from app.workers.celery_app import celery_app
-from app.tenancy.context import with_default_tenant
+from app.tenancy.context import for_all_tenants
 
 logger = logging.getLogger(__name__)
 
@@ -218,4 +218,4 @@ async def _send_daily_async() -> dict[str, Any]:
 
 @celery_app.task(name="digest.send_daily")
 def send_daily() -> dict[str, Any]:
-    return asyncio.run(with_default_tenant(_send_daily_async))
+    return asyncio.run(for_all_tenants(_send_daily_async))

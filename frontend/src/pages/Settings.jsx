@@ -17,6 +17,7 @@ import {
   saveIntegration,
   testIntegration,
   deleteIntegration,
+  registerUnipileWebhooks,
 } from '../api/settings.js';
 import { getAgentSettings, updateAgentSettings } from '../api/agent.js';
 import {
@@ -668,6 +669,13 @@ function IntegrationCard({ integration, onSaved }) {
     mutationFn: () => deleteIntegration(integration.provider),
     onSuccess: () => { toast.success('Key removed'); onSaved(); },
   });
+  const registerWebhooks = useMutation({
+    mutationFn: registerUnipileWebhooks,
+    onSuccess: (res) => toast.success(
+      `Webhooks registered on your Unipile workspace (${res.created.length} created)`
+    ),
+    onError: (e) => toast.error(e?.response?.data?.detail || 'Webhook registration failed'),
+  });
 
   return (
     <div
@@ -691,6 +699,18 @@ function IntegrationCard({ integration, onSaved }) {
           </p>
         </div>
         <div className="flex gap-2">
+          {integration.provider === 'unipile' && integration.configured && (
+            <button
+              type="button"
+              data-testid="integration-unipile-register-webhooks"
+              onClick={() => registerWebhooks.mutate()}
+              disabled={registerWebhooks.isPending}
+              title="Create the inbound webhooks (replies, connection accepts) on YOUR Unipile workspace"
+              className="text-sm px-3 py-1.5 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50"
+            >
+              {registerWebhooks.isPending ? 'Registering…' : 'Register webhooks'}
+            </button>
+          )}
           {integration.configured && (
             <button
               type="button"
