@@ -46,7 +46,7 @@ def test_settings_load_from_env():
 def test_celery_app_constructs():
     from app.workers.celery_app import celery_app
 
-    assert celery_app.main == "emailblaster"
+    assert celery_app.main == "outboundos"
     assert celery_app.conf.task_serializer == "json"
     assert celery_app.conf.broker_url.startswith("redis://")
 

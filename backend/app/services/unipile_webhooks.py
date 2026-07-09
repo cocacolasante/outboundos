@@ -61,7 +61,7 @@ async def register_tenant_webhooks(
                 base,
                 headers={**headers, "content-type": "application/json"},
                 json={
-                    "name": f"emailblaster - {source}",
+                    "name": f"outboundos - {source}",
                     "request_url": request_url,
                     "source": source,
                     "headers": [

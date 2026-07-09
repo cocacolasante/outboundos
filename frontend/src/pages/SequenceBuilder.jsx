@@ -25,15 +25,12 @@ import {
 } from '../api/sequences.js';
 
 // Kinds the publish step currently accepts.  The backend's full
-// SequenceNodeKind enum is wider (it still has linkedin_invite_to_page
-// + linkedin_inmail for historical rows / future re-enable), but the
-// palette only shows what's actually runnable today — anything else
-// just produces a publish error.
-//   - linkedin_invite_to_page: Unipile's passthrough whitelist blocks
-//     the Voyager endpoint we need.
+// SequenceNodeKind enum is wider (it still has linkedin_inmail for
+// historical rows / future re-enable), but the palette only shows
+// what's actually runnable today — anything else just produces a
+// publish error.
 //   - linkedin_inmail: blocked until Sales Nav API access is enabled
-//     on the Unipile workspace.
-// Both are tracked in CLAUDE.md "Next up".
+//     on the Unipile workspace.  Tracked in CLAUDE.md "Next up".
 const PALETTE = [
   { kind: 'email', label: 'Email', hint: 'Send a templated email.' },
   { kind: 'email_reply', label: 'Reply', hint: 'Reply in-thread to the lead’s original campaign email (not a new thread). AI-written or manual.' },
@@ -43,6 +40,7 @@ const PALETTE = [
   { kind: 'linkedin_react_post', label: 'LI: React to post', hint: 'Like the lead’s most recent post.' },
   { kind: 'linkedin_connect', label: 'LI: Connect', hint: 'Send a connection request, optionally with a 200-char note. The next edge defaults to "if accepted" so a downstream DM waits for the prospect to accept.' },
   { kind: 'linkedin_dm', label: 'LI: DM', hint: 'Send a direct message. Only fires for accepted (1st-degree) connections.' },
+  { kind: 'linkedin_invite_to_page', label: 'LI: Invite to page', hint: 'Invite the lead to follow your company page. Only fires for accepted (1st-degree) connections.' },
   { kind: 'linkedin_comment_post', label: 'LI: Comment on post', hint: 'Comment on the lead’s post — publicly visible. Use sparingly.' },
 ];
 

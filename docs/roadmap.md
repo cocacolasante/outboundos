@@ -1,4 +1,4 @@
-# Email Blaster — Phase 1.5 roadmap (M2 onwards)
+# OutboundOS — Phase 1.5 roadmap (M2 onwards)
 
 Remaining milestones for the multi-step + LinkedIn work. M1 (sequence
 framework, email-only) shipped. Current project state is in

@@ -81,6 +81,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=200)
     tenant_name: str | None = Field(default=None, max_length=200)
+    invite_code: str | None = Field(default=None, max_length=200)
 
 
 class LoginRequest(BaseModel):
@@ -104,6 +105,7 @@ class MeResponse(BaseModel):
     tenant_name: str
     tenant_slug: str
     role: str
+    is_superadmin: bool = False
 
 
 # --- Helpers ---------------------------------------------------------------
@@ -127,6 +129,8 @@ async def _start_session(
 
 
 def _me(user: User, tenant: Tenant, role: MembershipRole) -> MeResponse:
+    from app.auth.deps import is_superadmin
+
     return MeResponse(
         user_id=str(user.id),
         email=user.email,
@@ -134,6 +138,7 @@ def _me(user: User, tenant: Tenant, role: MembershipRole) -> MeResponse:
         tenant_name=tenant.name,
         tenant_slug=tenant.slug,
         role=role.value,
+        is_superadmin=is_superadmin(user.email),
     )
 
 
@@ -161,9 +166,30 @@ async def register(
     from app.billing.plans import DEFAULT_PLAN
     from app.models.identity import SubscriptionStatus
 
-    tenant.plan = DEFAULT_PLAN
-    tenant.subscription_status = SubscriptionStatus.TRIALING
-    tenant.trial_ends_at = _now() + timedelta(days=settings.BILLING_TRIAL_DAYS)
+    # Check for admin invite code — bypasses billing, custom trial duration
+    invite_link = None
+    if body.invite_code:
+        from app.models.invite_link import InviteLink
+        invite_link = (await db.execute(
+            select(InviteLink).where(
+                InviteLink.code == body.invite_code,
+                InviteLink.revoked.is_(False),
+            )
+        )).scalar_one_or_none()
+        if invite_link is None:
+            raise HTTPException(status_code=400, detail="invalid or expired invite code")
+        if invite_link.max_uses is not None and invite_link.use_count >= invite_link.max_uses:
+            raise HTTPException(status_code=400, detail="this invite link has reached its usage limit")
+
+    if invite_link:
+        tenant.plan = DEFAULT_PLAN
+        tenant.subscription_status = SubscriptionStatus.ACTIVE
+        tenant.trial_ends_at = _now() + timedelta(days=invite_link.trial_days)
+        invite_link.use_count += 1
+    else:
+        tenant.plan = DEFAULT_PLAN
+        tenant.subscription_status = SubscriptionStatus.TRIALING
+        tenant.trial_ends_at = _now() + timedelta(days=settings.BILLING_TRIAL_DAYS)
     user = User(email=email, password_hash=passwords.hash_password(body.password))
     db.add(tenant)
     db.add(user)

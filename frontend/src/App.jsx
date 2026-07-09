@@ -2,6 +2,7 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MotionConfig, motion } from 'framer-motion';
 import { getMe } from './api/auth.js';
+import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
 import Campaigns from './pages/Campaigns.jsx';
 import CampaignCreate from './pages/CampaignCreate.jsx';
@@ -18,10 +19,10 @@ import UiKit from './pages/UiKit.jsx';
 import OpportunityDetail from './pages/OpportunityDetail.jsx';
 import Replies from './pages/Replies.jsx';
 import ResearchClient from './pages/ResearchClient.jsx';
-import Lookalikes from './pages/Lookalikes.jsx';
-import Signals from './pages/Signals.jsx';
-import SocialRadar from './pages/SocialRadar.jsx';
 import Settings from './pages/Settings.jsx';
+import Admin from './pages/Admin.jsx';
+import Docs from './pages/Docs.jsx';
+import Setup from './pages/Setup.jsx';
 import Nav from './components/Nav.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { ToastProvider } from './components/Toast.jsx';
@@ -46,7 +47,7 @@ function RoutedContent() {
       transition={spring}
     >
       <Routes location={location}>
-        <Route path="/" element={<Campaigns />} />
+        <Route path="/campaigns" element={<Campaigns />} />
         <Route path="/campaigns/new" element={<CampaignCreate />} />
         <Route path="/campaigns/:id" element={<CampaignDetail />} />
         <Route path="/campaigns/:id/preview" element={<Preview />} />
@@ -60,10 +61,8 @@ function RoutedContent() {
         <Route path="/reports/builder" element={<ReportBuilder />} />
         <Route path="/replies" element={<Replies />} />
         <Route path="/research-client" element={<ResearchClient />} />
-        <Route path="/signals" element={<Signals />} />
-        <Route path="/lookalikes" element={<Lookalikes />} />
-        <Route path="/social-radar" element={<SocialRadar />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/ui-kit" element={<UiKit />} />{/* internal design-system preview */}
       </Routes>
     </motion.div>
@@ -92,7 +91,7 @@ function RequireAuth({ children }) {
       </div>
     );
   }
-  if (isError || !me) return <Navigate to="/login" replace />;
+  if (isError || !me) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -118,7 +117,10 @@ export default function App() {
     <MotionConfig reducedMotion="user" transition={spring}>
       <ToastProvider>
         <Routes>
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/docs" element={<Docs />} />
+          <Route path="/setup" element={<RequireAuth><Setup /></RequireAuth>} />
           <Route
             path="/*"
             element={(

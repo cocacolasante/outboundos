@@ -93,14 +93,14 @@ def _render_email(notification: Notification) -> tuple[str, str]:
     """Tiny HTML + text rendering for the owner alert."""
     title = notification.title
     body = notification.body or ""
-    text = f"{title}\n\n{body}\n\n— Email Blaster agent"
+    text = f"{title}\n\n{body}\n\n— OutboundOS agent"
     html_body = body.replace("\n", "<br>")
     html = (
         f"<div style='font-family:sans-serif;max-width:560px'>"
         f"<h3 style='margin:0 0 12px'>{title}</h3>"
         f"<p style='color:#374151'>{html_body}</p>"
         f"<p style='color:#9ca3af;font-size:12px;margin-top:24px'>"
-        f"— Email Blaster agent</p></div>"
+        f"— OutboundOS agent</p></div>"
     )
     return html, text
 

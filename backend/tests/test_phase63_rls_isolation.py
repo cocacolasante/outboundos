@@ -24,10 +24,10 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-RLS_DB = "emailblaster_rls_test"
-ADMIN_DSN = "postgresql://emailblaster:emailblaster@postgres:5432/postgres"
-OWNER_DSN_PG = f"postgresql://emailblaster:emailblaster@postgres:5432/{RLS_DB}"
-OWNER_DSN = f"postgresql+asyncpg://emailblaster:emailblaster@postgres:5432/{RLS_DB}"
+RLS_DB = "outboundos_rls_test"
+ADMIN_DSN = "postgresql://outboundos:outboundos@postgres:5432/postgres"
+OWNER_DSN_PG = f"postgresql://outboundos:outboundos@postgres:5432/{RLS_DB}"
+OWNER_DSN = f"postgresql+asyncpg://outboundos:outboundos@postgres:5432/{RLS_DB}"
 APP_ROLE = "rls_test_user"
 APP_DSN = f"postgresql+asyncpg://{APP_ROLE}:rls-test-pw@postgres:5432/{RLS_DB}"
 

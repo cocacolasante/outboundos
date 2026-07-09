@@ -607,8 +607,8 @@ class UnipileLinkedInProvider(LinkedInProvider):
     ) -> ActionResult:
         """Invite a connection to follow a company page.
 
-        Blocked on Unipile's side, not ours.  The correct Voyager endpoint
-        was HAR-captured from LinkedIn's admin UI:
+        Goes through Unipile's raw Voyager passthrough at
+        ``POST /api/v1/linkedin`` (same as ``follow_profile``), hitting
 
             POST /voyager/api/voyagerRelationshipsDashInvitations
                 ?inviter=(organizationUrn:urn:li:fsd_company:<PAGE_ID>)
@@ -616,33 +616,55 @@ class UnipileLinkedInProvider(LinkedInProvider):
             body: {"elements":[{"inviteeMember":"urn:li:fsd_profile:<MEMBER>",
                                 "genericInvitationType":"ORGANIZATION"}]}
 
-        and routed through Unipile's raw passthrough at
-        ``POST /api/v1/linkedin`` (the same passthrough ``follow_profile``
-        uses successfully).  Both the inlined-query and the documented
-        ``query_params`` forms return Unipile's
-        ``errors/malformed_request`` from their forwarder.  Direct probing
-        shows Unipile's passthrough rejects *any* request to
-        ``voyagerRelationshipsDashInvitations`` (and to other voyager
-        paths like ``identity/profiles/me``) — the passthrough whitelist
-        is narrower than the docs suggest.  ``follow_profile`` works only
-        because ``feed/dash/followingStates`` is on the allowlist.
-
-        To unblock: contact Unipile support and ask them to whitelist
-        ``voyagerRelationshipsDashInvitations`` for our workspace, or
-        request that they package the action natively.  Once they do,
-        re-add ``LINKEDIN_INVITE_TO_PAGE`` to ``PUBLISHABLE_KINDS_M1``
-        and restore the impl from git history (commit message will
-        mention "wire invite_to_page via Voyager passthrough").
+        The shape follows Unipile's official example verbatim
+        (https://developer.unipile.com/docs/get-raw-data-example#invite-people-to-follow-your-company-page):
+        the ``inviter`` URN colons are pre-encoded as ``%3A`` and
+        ``encoding`` is false — deviating from that returns
+        ``errors/malformed_request`` from their forwarder.
         """
-        return ActionResult(
-            ok=False,
-            error=(
-                "linkedin_invite_to_page is blocked on Unipile's passthrough "
-                "whitelist — the voyagerRelationshipsDashInvitations endpoint "
-                "is not allowlisted.  Contact Unipile support to enable."
-            ),
-            meta={"code": "unipile_passthrough_blocked", "page_id": page_id},
-        )
+        try:
+            aid = self._account_id(account)
+            provider_id = await self._resolve_provider_id(aid, profile)
+            if not provider_id:
+                return ActionResult(ok=False, error="invite_to_page requires a public_id or urn")
+            # Normalise — Unipile returns the bare member token; the
+            # inviteeMember field needs the full ``urn:li:fsd_profile:`` URN.
+            if provider_id.startswith("urn:li:fsd_profile:"):
+                fsd_urn = provider_id
+            else:
+                fsd_urn = f"urn:li:fsd_profile:{provider_id}"
+            data = await self._request(
+                "POST", "/api/v1/linkedin",
+                json={
+                    "account_id": aid,
+                    "method": "POST",
+                    "request_url": (
+                        "https://www.linkedin.com/voyager/api/"
+                        "voyagerRelationshipsDashInvitations"
+                    ),
+                    "body": {
+                        "elements": [
+                            {
+                                "inviteeMember": fsd_urn,
+                                "genericInvitationType": "ORGANIZATION",
+                            }
+                        ]
+                    },
+                    "query_params": {
+                        "inviter": (
+                            f"(organizationUrn:urn%3Ali%3Afsd_company%3A{page_id})"
+                        ),
+                    },
+                    "headers": {"x-restli-method": "batch_create"},
+                    "encoding": False,
+                },
+            )
+        except ChallengeRequired as exc:
+            account.pending_challenge_url = exc.challenge_url or "https://www.linkedin.com"
+            raise
+        except UnipileError as exc:
+            return ActionResult(ok=False, error=str(exc), meta={"code": exc.code, "http_status": exc.status})
+        return ActionResult(ok=True, external_id=provider_id, meta=data if isinstance(data, dict) else None)
 
     async def send_inmail(
         self, account: Any, profile: ProfileRef, subject: str, body: str

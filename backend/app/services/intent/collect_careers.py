@@ -37,7 +37,7 @@ _DEV_ROLE_BASE_SCORE = 80.0
 _TAG_RE = re.compile(r"<[^>]+>")
 _CAREERS_PATHS = ("/careers", "/jobs", "/about/careers", "/join-us",
                   "/work-with-us", "/employment", "/get-involved/careers", "")
-_UA = "Mozilla/5.0 (emailblaster intent dev-role check)"
+_UA = "Mozilla/5.0 (outboundos intent dev-role check)"
 _FETCH_TIMEOUT = 8.0
 
 

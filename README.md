@@ -1,4 +1,4 @@
-# Email Blaster
+# OutboundOS
 
 AI-powered cold outreach platform — multi-channel (email + LinkedIn), built around per-lead research and Claude-composed personalization.
 
@@ -255,8 +255,8 @@ walkthrough below). The same operations are available over the REST API
 ### 1. Clone + env file
 
 ```bash
-git clone <repo-url> emailblaster
-cd emailblaster
+git clone <repo-url> outboundos
+cd outboundos
 cp backend/.env.example .env
 ```
 
@@ -419,7 +419,7 @@ for SRC in messaging account_status users; do
   curl -s -X POST "https://$DSN/api/v1/webhooks" \
     -H "X-API-KEY: $KEY" -H "content-type: application/json" \
     -d "{
-      \"name\": \"emailblaster - $SRC\",
+      \"name\": \"outboundos - $SRC\",
       \"request_url\": \"$TUNNEL/webhooks/unipile\",
       \"source\": \"$SRC\",
       \"headers\": [
@@ -466,7 +466,7 @@ Sidebar → **Settings → Connected inboxes → + Connect inbox**.
 - **You need an App Password — not your regular Google password.** Gmail blocks regular passwords for IMAP.
   1. Enable 2-Step Verification on your Google account first
   2. Go to https://myaccount.google.com/apppasswords
-  3. Create a new app password labeled "Email Blaster"
+  3. Create a new app password labeled "OutboundOS"
   4. Paste the 16-character app password into the form
 - **Gmail aliases share their parent mailbox.** Set `email_address` to the alias, `username` to the primary mailbox.
 
@@ -745,7 +745,7 @@ approve** — the engine never sends or converts on its own.
 ## Project layout
 
 ```
-emailblaster/
+outboundos/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                  FastAPI app + CORS middleware + 500-handler with CORS
@@ -920,7 +920,7 @@ LinkedIn rate-limit tests must monkeypatch `sequencer._LI_REDIS_CLIENT=None` per
 | Gmail "authentication failed" | Using regular password | Use a 16-char **App Password** with 2-Step Verification enabled. Some Workspace orgs disable IMAP — ask your admin |
 | Brevo "sender not authorized" | Sender not added in Brevo | Add `BREVO_SENDER_EMAIL` in Brevo dashboard → **Senders & IP** |
 | Webhook events not appearing | Brevo events poller is async (up to 10min lag) | Wait. If still missing, check `docker compose logs worker \| grep brevo_events` |
-| `socket.gaierror: Name or service not known` in backend logs | Docker network detached postgres after Desktop restart | `docker network connect --alias postgres emailblaster_default emailblaster-postgres-1` |
+| `socket.gaierror: Name or service not known` in backend logs | Docker network detached postgres after Desktop restart | `docker network connect --alias postgres outboundos_default outboundos-postgres-1` |
 | Worker logs `ModuleNotFoundError` after editing `requirements.txt` | `docker compose build backend` doesn't rebuild worker/beat | `docker compose build backend worker beat` |
 | Config change in `.env` not taking effect | `restart` doesn't re-read `.env` | `docker compose up -d --force-recreate backend worker beat`. Verify with `docker compose exec backend printenv VAR_NAME` |
 | New `.env` var doesn't reach containers | Not in compose `environment:` allowlist | Add `FOO: ${FOO:-default}` to backend/worker/beat blocks in `docker-compose.yml`, force-recreate |

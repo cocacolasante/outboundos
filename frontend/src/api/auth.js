@@ -10,11 +10,12 @@ export async function login({ email, password }) {
   return data;
 }
 
-export async function register({ email, password, tenantName }) {
+export async function register({ email, password, tenantName, inviteCode }) {
   const { data } = await client.post('/auth/register', {
     email,
     password,
     tenant_name: tenantName || null,
+    invite_code: inviteCode || null,
   });
   return data;
 }

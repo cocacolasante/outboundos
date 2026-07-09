@@ -5,9 +5,9 @@ import subprocess
 import asyncpg
 import pytest
 
-MIGRATION_DB = "emailblaster_migration_test"
-ADMIN_DSN = "postgresql://emailblaster:emailblaster@postgres:5432/postgres"
-MIGRATION_DSN_ASYNCPG = f"postgresql+asyncpg://emailblaster:emailblaster@postgres:5432/{MIGRATION_DB}"
+MIGRATION_DB = "outboundos_migration_test"
+ADMIN_DSN = "postgresql://outboundos:outboundos@postgres:5432/postgres"
+MIGRATION_DSN_ASYNCPG = f"postgresql+asyncpg://outboundos:outboundos@postgres:5432/{MIGRATION_DB}"
 
 
 async def _admin_exec(sql: str) -> None:
@@ -45,7 +45,7 @@ async def test_alembic_upgrade_head_creates_all_tables(fresh_migration_db):
     assert result.returncode == 0, f"alembic upgrade failed:\nSTDOUT:{result.stdout}\nSTDERR:{result.stderr}"
 
     conn = await asyncpg.connect(
-        f"postgresql://emailblaster:emailblaster@postgres:5432/{MIGRATION_DB}"
+        f"postgresql://outboundos:outboundos@postgres:5432/{MIGRATION_DB}"
     )
     try:
         rows = await conn.fetch(
@@ -90,7 +90,7 @@ async def test_alembic_downgrade_to_base_drops_all_tables(fresh_migration_db):
     assert down.returncode == 0, f"alembic downgrade failed:\nSTDOUT:{down.stdout}\nSTDERR:{down.stderr}"
 
     conn = await asyncpg.connect(
-        f"postgresql://emailblaster:emailblaster@postgres:5432/{MIGRATION_DB}"
+        f"postgresql://outboundos:outboundos@postgres:5432/{MIGRATION_DB}"
     )
     try:
         rows = await conn.fetch(

@@ -458,19 +458,82 @@ async def test_send_dm_starts_chat_with_text():
 
 
 @pytest.mark.asyncio
-async def test_invite_to_page_returns_unipile_passthrough_blocked():
-    """invite_to_page is a stub that returns a clean error.  We have the
-    HAR-verified Voyager shape but Unipile's /api/v1/linkedin passthrough
-    rejects ``voyagerRelationshipsDashInvitations`` with
-    ``errors/malformed_request`` regardless of payload shape (probed
-    extensively — the same passthrough call for ``feed/dash/followingStates``
-    works, so it's a Unipile whitelist issue).  The impl no-ops on the
-    network until that's resolved, so callers see a clear reason without
-    burning calls."""
+async def test_invite_to_page_posts_voyager_batch_create():
+    """invite_to_page goes through the raw Voyager passthrough with the
+    exact shape from Unipile's official example (get-raw-data-example
+    docs): pre-encoded inviter URN in query_params, x-restli-method
+    batch_create header, encoding false."""
+    seen: list[httpx.Request] = []
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen.append(req)
+        return httpx.Response(200, json={"elements": []})
+    prov = _provider_with(handler)
+    res = await prov.invite_to_page(
+        _FakeAccount(),
+        ProfileRef(public_id="j", urn="urn:li:fsd_profile:J"),
+        page_id="9876",
+    )
+    assert res.ok is True
+    assert res.external_id == "urn:li:fsd_profile:J"
+    assert seen[0].method == "POST"
+    assert "/api/v1/linkedin" in str(seen[0].url)
+    body = json.loads(seen[0].content)
+    assert body["account_id"] == "up-acct-XYZ"
+    assert body["method"] == "POST"
+    assert body["request_url"].endswith("/voyager/api/voyagerRelationshipsDashInvitations")
+    assert body["body"] == {
+        "elements": [
+            {
+                "inviteeMember": "urn:li:fsd_profile:J",
+                "genericInvitationType": "ORGANIZATION",
+            }
+        ]
+    }
+    assert body["query_params"] == {
+        "inviter": "(organizationUrn:urn%3Ali%3Afsd_company%3A9876)",
+    }
+    assert body["headers"] == {"x-restli-method": "batch_create"}
+    assert body["encoding"] is False
+
+
+@pytest.mark.asyncio
+async def test_invite_to_page_normalizes_bare_provider_id():
+    """A bare member token from the resolver hop gets the full
+    ``urn:li:fsd_profile:`` prefix before landing in inviteeMember."""
+    seen: list[httpx.Request] = []
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen.append(req)
+        if req.method == "GET" and "/api/v1/users/" in str(req.url):
+            return httpx.Response(200, json={"provider_id": "ACoAA-bare"})
+        return httpx.Response(200, json={})
+    prov = _provider_with(handler)
+    res = await prov.invite_to_page(
+        _FakeAccount(), ProfileRef(public_id="j"), page_id="9876",
+    )
+    assert res.ok is True
+    body = json.loads(seen[-1].content)
+    assert body["body"]["elements"][0]["inviteeMember"] == "urn:li:fsd_profile:ACoAA-bare"
+
+
+@pytest.mark.asyncio
+async def test_invite_to_page_no_id_returns_error():
     seen: list[httpx.Request] = []
     def handler(req: httpx.Request) -> httpx.Response:
         seen.append(req)
         return httpx.Response(200, json={})
+    prov = _provider_with(handler)
+    res = await prov.invite_to_page(_FakeAccount(), ProfileRef(), page_id="9876")
+    assert res.ok is False
+    assert seen == []
+
+
+@pytest.mark.asyncio
+async def test_invite_to_page_maps_unipile_error():
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            400,
+            json={"type": "errors/malformed_request", "title": "bad shape"},
+        )
     prov = _provider_with(handler)
     res = await prov.invite_to_page(
         _FakeAccount(),
@@ -478,10 +541,7 @@ async def test_invite_to_page_returns_unipile_passthrough_blocked():
         page_id="9876",
     )
     assert res.ok is False
-    assert (res.meta or {}).get("code") == "unipile_passthrough_blocked"
-    assert (res.meta or {}).get("page_id") == "9876"
-    # No network call fired — the stub short-circuits.
-    assert seen == []
+    assert (res.meta or {}).get("code") == "errors/malformed_request"
 
 
 @pytest.mark.asyncio

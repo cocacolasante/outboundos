@@ -213,7 +213,7 @@ class Unipile:
         auth_header: str = DEFAULT_AUTH_HEADER,
     ) -> dict[str, Any]:
         return self._req("POST", "/api/v1/webhooks", body={
-            "name": f"emailblaster - {source}",
+            "name": f"outboundos - {source}",
             "request_url": request_url,
             "source": source,
             "headers": [
@@ -277,7 +277,7 @@ class Brevo:
         return self._req("POST", "/webhooks", body={
             "type": "transactional",
             "url": url,
-            "description": "Email Blaster real-time events",
+            "description": "OutboundOS real-time events",
             "events": BREVO_EVENTS,
             "headers": [{"key": BREVO_AUTH_HEADER, "value": secret}],
         })

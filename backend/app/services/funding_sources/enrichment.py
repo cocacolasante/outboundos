@@ -187,7 +187,7 @@ async def _scrape_contacts(domain: str) -> list[dict[str, Any]]:
     try:
         async with httpx.AsyncClient(
             timeout=8.0, follow_redirects=True,
-            headers={"User-Agent": "Mozilla/5.0 (emailblaster contact discovery)"},
+            headers={"User-Agent": "Mozilla/5.0 (outboundos contact discovery)"},
         ) as client:
             for path in _SCRAPE_PATHS[:max_pages]:
                 url = base + path

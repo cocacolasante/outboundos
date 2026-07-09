@@ -1,4 +1,4 @@
-# Email Blaster — Claude session context
+# OutboundOS — Claude session context
 
 Running state of the project so any Claude session (this one or a future one)
 can pick up where the last one left off. The remaining-work roadmap is in
@@ -22,7 +22,31 @@ sequences + LinkedIn outreach**, broken into M1–M5 in the roadmap.
 
 ## Where we are
 
-- **Last completed:** **Multi-tenant SaaS conversion — Phase 8 follow-on
+- **Last completed:** **`linkedin_invite_to_page` un-gated + implemented.**
+  Unipile now officially documents the invite-to-follow-company-page
+  Voyager call in their raw-data examples
+  (developer.unipile.com/docs/get-raw-data-example#invite-people-to-follow-your-company-page),
+  so the kind is live end-to-end:
+  - `unipile_impl.invite_to_page` — real passthrough call at
+    `POST /api/v1/linkedin` following the doc verbatim:
+    `request_url=…/voyager/api/voyagerRelationshipsDashInvitations`,
+    `body.elements=[{inviteeMember: urn:li:fsd_profile:<id>,
+    genericInvitationType: ORGANIZATION}]`,
+    `query_params.inviter=(organizationUrn:urn%3Ali%3Afsd_company%3A<PAGE_ID>)`
+    (colons pre-encoded), `headers={x-restli-method: batch_create}`,
+    `encoding: false`.  Resolver + `urn:li:fsd_profile:` normalization
+    mirror `follow_profile`.
+  - `LINKEDIN_INVITE_TO_PAGE` re-added to `PUBLISHABLE_KINDS_M1`;
+    palette entry "LI: Invite to page" restored in `SequenceBuilder.jsx`
+    (config form, defaults, executor dispatch, 1st-degree pre-flight,
+    per-page monthly cap were never removed — no migration needed, the
+    enum value shipped in 0002).
+  - Tests: provider request-shape/normalize/no-id/error-mapping tests
+    replace the passthrough-blocked stub test;
+    `test_publish_rejects_linkedin_invite_to_page` flipped to
+    `test_publish_accepts_…`; palette test flipped.
+
+- **Previously:** **Multi-tenant SaaS conversion — Phase 8 follow-on
   (per-tenant Unipile webhooks + per-tenant collectors; migration
   0051).**  Closes the two functional BYOK gaps flagged at ship.
   - **Per-tenant Unipile webhooks (the inbound half of BYOK):**
@@ -2543,9 +2567,8 @@ sequences + LinkedIn outreach**, broken into M1–M5 in the roadmap.
     be on Unipile's allowlist.  The impl now returns a clean
     `unipile_passthrough_blocked` ActionResult and
     `LINKEDIN_INVITE_TO_PAGE` is gated out of `PUBLISHABLE_KINDS_M1`.
-    Next step: open a Unipile support ticket asking them to allowlist
-    `voyagerRelationshipsDashInvitations`, then restore the impl + gate
-    from git history (it lives in commits prior to the gating revert).
+    **(Since resolved — Unipile documented the call officially and the
+    kind was un-gated + implemented; see the top entry.)**
   - Added a `_resolve_provider_id` unit test, a `resource_access_restricted`
     error-mapping regression test, a form-encoded InMail body test, and
     rewrote `test_publish_rejects_non_numeric_page_id` →
@@ -2588,13 +2611,12 @@ sequences + LinkedIn outreach**, broken into M1–M5 in the roadmap.
 
 - **In flight:** nothing.
 - **Next up:** open.  Suggested directions:
-  - **Open a Unipile support ticket** for two passthrough/permission
-    issues at once: (a) allowlist `voyagerRelationshipsDashInvitations`
-    on `/api/v1/linkedin` so `invite_to_page` can fire; (b) enable Sales
-    Navigator API access on the workspace so `send_inmail` (POST
-    `/api/v1/chats` with `linkedin[api]=sales_navigator`) stops returning
-    `errors/resource_access_restricted`.  Both impls are HAR / docs-
-    verified — neither is a code bug.
+  - **Open a Unipile support ticket** to enable Sales Navigator API
+    access on the workspace so `send_inmail` (POST `/api/v1/chats` with
+    `linkedin[api]=sales_navigator`) stops returning
+    `errors/resource_access_restricted`.  The impl is HAR / docs-
+    verified — not a code bug.  (The other passthrough issue —
+    `invite_to_page` — is resolved and shipped.)
   - **Unlock InMail in Unipile.** Live test returned 403
     `errors/resource_access_restricted` — the impl is correct but the
     Unipile workspace doesn't have Sales Nav API access enabled.
@@ -2708,11 +2730,11 @@ sequences + LinkedIn outreach**, broken into M1–M5 in the roadmap.
   — the DIY LinkedIn consumer was stripped along with Playwright).  A
   test in `test_phase15_hardening.py` greps the codebase to enforce.
 - **Docker network quirk:** if Docker Desktop restarts while containers
-  are up, postgres can become detached from `emailblaster_default`
+  are up, postgres can become detached from `outboundos_default`
   (you'll see `socket.gaierror: Name or service not known` in backend
   logs). Fix without a restart:
   ```bash
-  docker network connect --alias postgres emailblaster_default emailblaster-postgres-1
+  docker network connect --alias postgres outboundos_default outboundos-postgres-1
   ```
 - **CORS-on-error:** 500 responses go through Starlette's
   `ServerErrorMiddleware` which sits OUTSIDE `CORSMiddleware`. The
@@ -3807,7 +3829,7 @@ for SRC in messaging account_status users; do
   curl -s -X POST "https://$DSN/api/v1/webhooks" \
     -H "X-API-KEY: $KEY" -H "content-type: application/json" \
     -d "{
-      \"name\": \"emailblaster - $SRC\",
+      \"name\": \"outboundos - $SRC\",
       \"request_url\": \"$TUNNEL/webhooks/unipile\",
       \"source\": \"$SRC\",
       \"headers\": [

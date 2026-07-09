@@ -49,9 +49,9 @@ docker compose up -d postgres redis
 docker compose run --rm backend alembic upgrade head
 
 # Non-owner runtime role (RLS enforcement):
-docker compose exec -T postgres psql -U emailblaster -d emailblaster \
+docker compose exec -T postgres psql -U outboundos -d outboundos \
   -v app_password="'<STRONG-PASSWORD>'" -f - < backend/scripts/bootstrap_db.sql
-# then set APP_DATABASE_URL=postgresql+asyncpg://app_user:<pw>@postgres:5432/emailblaster
+# then set APP_DATABASE_URL=postgresql+asyncpg://app_user:<pw>@postgres:5432/outboundos
 
 docker compose up -d backend worker beat frontend
 ```
@@ -67,7 +67,7 @@ docker compose exec backend python scripts/bootstrap_tenant.py \
 
 ```bash
 docker compose logs backend | grep -i "SECURITY"   # must print NOTHING
-docker compose exec postgres psql -U emailblaster -d emailblaster -tc \
+docker compose exec postgres psql -U outboundos -d outboundos -tc \
   "select count(*) from pg_policies where policyname='tenant_isolation'"  # 42
 ```
 

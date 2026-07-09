@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://emailblaster:emailblaster@localhost:5432/emailblaster"
+    DATABASE_URL: str = "postgresql+asyncpg://outboundos:outboundos@localhost:5432/outboundos"
 
     # Redis / Celery
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     # Email sending
     BREVO_API_KEY: str = ""
     BREVO_SENDER_EMAIL: str = "noreply@example.com"
-    BREVO_SENDER_NAME: str = "Email Blaster"
+    BREVO_SENDER_NAME: str = "OutboundOS"
     # Set to False to mirror "Click tracking" being turned OFF in the Brevo
     # dashboard (Transactional → Settings).  Disabling click tracking removes
     # Brevo's link-rewriting (a strong bulk/marketing fingerprint that gets

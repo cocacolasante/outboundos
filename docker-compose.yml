@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-emailblaster}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-emailblaster}
-      POSTGRES_DB: ${POSTGRES_DB:-emailblaster}
+      POSTGRES_USER: ${POSTGRES_USER:-outboundos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-outboundos}
+      POSTGRES_DB: ${POSTGRES_DB:-outboundos}
     ports:
       # localhost-only — db/redis/backend are unauthenticated; LAN exposure
       # = unauthenticated lead access + token spend.  Tunnel
@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-emailblaster}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-outboundos}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -38,7 +38,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-emailblaster}:${POSTGRES_PASSWORD:-emailblaster}@postgres:5432/${POSTGRES_DB:-emailblaster}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-outboundos}:${POSTGRES_PASSWORD:-outboundos}@postgres:5432/${POSTGRES_DB:-outboundos}
       REDIS_URL: redis://redis:6379/0
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
@@ -53,7 +53,7 @@ services:
       LINKEDIN_DISCOVERY_WEB_SEARCH_MAX_USES: ${LINKEDIN_DISCOVERY_WEB_SEARCH_MAX_USES:-5}
       BREVO_API_KEY: ${BREVO_API_KEY:-}
       BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-noreply@example.com}
-      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-Email Blaster}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-OutboundOS}
       EMAIL_CLICK_TRACKING_ENABLED: ${EMAIL_CLICK_TRACKING_ENABLED:-true}
       APOLLO_API_KEY: ${APOLLO_API_KEY:-}
       HUNTER_API_KEY: ${HUNTER_API_KEY:-}
@@ -162,7 +162,7 @@ services:
     # invites the kill and nothing restarts the container afterward.
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-emailblaster}:${POSTGRES_PASSWORD:-emailblaster}@postgres:5432/${POSTGRES_DB:-emailblaster}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-outboundos}:${POSTGRES_PASSWORD:-outboundos}@postgres:5432/${POSTGRES_DB:-outboundos}
       REDIS_URL: redis://redis:6379/0
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
@@ -177,7 +177,7 @@ services:
       LINKEDIN_DISCOVERY_WEB_SEARCH_MAX_USES: ${LINKEDIN_DISCOVERY_WEB_SEARCH_MAX_USES:-5}
       BREVO_API_KEY: ${BREVO_API_KEY:-}
       BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-noreply@example.com}
-      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-Email Blaster}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-OutboundOS}
       EMAIL_CLICK_TRACKING_ENABLED: ${EMAIL_CLICK_TRACKING_ENABLED:-true}
       APOLLO_API_KEY: ${APOLLO_API_KEY:-}
       HUNTER_API_KEY: ${HUNTER_API_KEY:-}
@@ -265,7 +265,7 @@ services:
     command: celery -A app.workers.celery_app beat --loglevel=info
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-emailblaster}:${POSTGRES_PASSWORD:-emailblaster}@postgres:5432/${POSTGRES_DB:-emailblaster}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-outboundos}:${POSTGRES_PASSWORD:-outboundos}@postgres:5432/${POSTGRES_DB:-outboundos}
       REDIS_URL: redis://redis:6379/0
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       IMAP_POLL_INTERVAL_MINUTES: ${IMAP_POLL_INTERVAL_MINUTES:-20}
@@ -336,6 +336,7 @@ services:
     command: npm run dev -- --host 0.0.0.0
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+      VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-}
     ports:
       - "127.0.0.1:5173:5173"
     volumes:

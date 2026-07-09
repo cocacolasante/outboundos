@@ -112,14 +112,21 @@ async def create_checkout(
         )
     tenant = await _tenant_or_401(db)
     customer_id = await _ensure_customer(stripe, db, tenant, request)
-    session = await asyncio.to_thread(
-        stripe.checkout.Session.create,
+    checkout_kwargs = dict(
         mode="subscription",
         customer=customer_id,
         client_reference_id=str(tenant.id),
         line_items=[{"price": price_id, "quantity": 1}],
         success_url=f"{settings.FRONTEND_URL}/settings?billing=success",
         cancel_url=f"{settings.FRONTEND_URL}/settings?billing=canceled",
+    )
+    if settings.BILLING_TRIAL_DAYS and not tenant.stripe_subscription_id:
+        checkout_kwargs["subscription_data"] = {
+            "trial_period_days": settings.BILLING_TRIAL_DAYS,
+        }
+    session = await asyncio.to_thread(
+        stripe.checkout.Session.create,
+        **checkout_kwargs,
     )
     return UrlResponse(url=session["url"])
 

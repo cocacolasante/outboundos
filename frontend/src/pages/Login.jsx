@@ -17,10 +17,12 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const resetToken = searchParams.get('reset_token');
   const inviteToken = searchParams.get('invite_token');
+  const inviteCode = searchParams.get('invite_code');
+  const modeParam = searchParams.get('mode');
 
   // 'login' | 'signup' | 'forgot' | 'reset' | 'invite'
   const [mode, setMode] = useState(
-    inviteToken ? 'invite' : resetToken ? 'reset' : 'login'
+    inviteToken ? 'invite' : resetToken ? 'reset' : modeParam === 'signup' ? 'signup' : 'login'
   );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,7 +40,7 @@ export default function Login() {
       if (mode === 'login') {
         await login({ email, password });
       } else if (mode === 'signup') {
-        await register({ email, password, tenantName });
+        await register({ email, password, tenantName, inviteCode });
       } else if (mode === 'forgot') {
         await forgotPassword(email);
         setNotice('If that email has an account, a reset link is on its way.');
@@ -61,7 +63,7 @@ export default function Login() {
       }
       // Login / signup succeeded: refresh the auth query and enter the app.
       await queryClient.invalidateQueries({ queryKey: ['auth-me'] });
-      navigate('/', { replace: true });
+      navigate(mode === 'signup' ? '/setup' : '/campaigns', { replace: true });
     } catch (err) {
       const detail = err?.response?.data?.detail;
       setError(typeof detail === 'string' ? detail : 'Something went wrong — try again.');
@@ -89,7 +91,7 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <p className="text-center font-bold text-xl tracking-tight text-slate-900 mb-6">
-          Email Blaster
+          OutboundOS
         </p>
         <form
           onSubmit={handleSubmit}
@@ -97,6 +99,12 @@ export default function Login() {
           className="bg-white rounded-card shadow-card border border-slate-200 p-6 space-y-4"
         >
           <h1 className="text-lg font-semibold text-slate-900">{heading}</h1>
+
+          {inviteCode && mode === 'signup' && (
+            <p className="text-sm text-brand-600 bg-brand-50 border border-brand-200 rounded-md px-3 py-2">
+              You've been invited! Create your account to get started — no credit card required.
+            </p>
+          )}
 
           {error && (
             <p data-testid="login-error" className="text-sm text-danger-600" role="alert">

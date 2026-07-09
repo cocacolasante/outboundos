@@ -7,10 +7,10 @@
 -- NOBYPASSRLS attributes and re-grants).
 --
 -- Usage (dev):
---   docker compose exec -T postgres psql -U emailblaster -d emailblaster \
+--   docker compose exec -T postgres psql -U outboundos -d outboundos \
 --     -v app_password="'CHANGE-ME'" -f - < backend/scripts/bootstrap_db.sql
 -- Then set APP_DATABASE_URL in .env, e.g.
---   APP_DATABASE_URL=postgresql+asyncpg://app_user:CHANGE-ME@postgres:5432/emailblaster
+--   APP_DATABASE_URL=postgresql+asyncpg://app_user:CHANGE-ME@postgres:5432/outboundos
 --
 -- Deliberately NOT an Alembic migration: role passwords don't belong in
 -- migration history, and role management is instance-level, not schema.

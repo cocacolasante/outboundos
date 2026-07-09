@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { logout } from '../api/auth.js';
+import { useQuery } from '@tanstack/react-query';
+import { getMe, logout } from '../api/auth.js';
 
 const ITEMS = [
   {
-    to: '/',
+    to: '/campaigns',
     label: 'Campaigns',
     end: true,
     icon: (
@@ -82,36 +83,12 @@ const ITEMS = [
     ),
   },
   {
-    to: '/signals',
-    label: 'Signals',
+    to: '/docs',
+    label: 'Documentation',
+    external: true,
     icon: (
-      // Lightning bolt — "trigger events"
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-  },
-  {
-    to: '/lookalikes',
-    label: 'Lookalikes',
-    icon: (
-      // Two overlapping circles — "similar profiles"
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <circle cx="9" cy="12" r="6" strokeWidth={2} />
-        <circle cx="15" cy="12" r="6" strokeWidth={2} />
-      </svg>
-    ),
-  },
-  {
-    to: '/social-radar',
-    label: 'Social Radar',
-    icon: (
-      // Concentric circles + center dot — "radar / signal"
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 12c0-5.523 4.477-10 10-10v0" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12a6 6 0 016-6" />
-        <circle cx="12" cy="12" r="2" strokeWidth={2} />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12l8 8" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
       </svg>
     ),
   },
@@ -126,6 +103,16 @@ const ITEMS = [
     ),
   },
 ];
+
+const ADMIN_ITEM = {
+  to: '/admin',
+  label: 'Admin',
+  icon: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
+};
 
 const STORAGE_KEY = 'ui.nav.collapsed';
 
@@ -143,6 +130,13 @@ function ChevronIcon({ collapsed }) {
 
 
 export default function Nav() {
+  const { data: me } = useQuery({
+    queryKey: ['auth-me'],
+    queryFn: getMe,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(STORAGE_KEY) === '1';
@@ -167,7 +161,10 @@ export default function Nav() {
     >
       <div className={`flex items-center border-b border-slate-800 ${collapsed ? 'justify-center px-2 py-4' : 'justify-between px-4 py-5'}`}>
         {!collapsed && (
-          <span className="text-white font-bold text-lg tracking-tight">Email Blaster</span>
+          <div className="flex flex-col">
+            <span className="text-white font-bold text-lg tracking-tight leading-tight">OutboundOS</span>
+            <span className="text-slate-500 text-[10px] tracking-wide">A CSuite Code Tool</span>
+          </div>
         )}
         <button
           type="button"
@@ -186,24 +183,57 @@ export default function Nav() {
         <ul className="list-none p-0 m-0">
           {ITEMS.map((item) => (
             <li key={item.to} className="px-2">
+              {item.external ? (
+                <a
+                  href={item.to}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={collapsed ? item.label : undefined}
+                  aria-label={collapsed ? item.label : undefined}
+                  className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-2.5 rounded-lg text-sm font-medium transition-colors no-underline text-slate-400 hover:text-white hover:bg-slate-800`}
+                >
+                  {item.icon}
+                  {!collapsed && <span>{item.label}</span>}
+                </a>
+              ) : (
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  title={collapsed ? item.label : undefined}
+                  aria-label={collapsed ? item.label : undefined}
+                  className={({ isActive }) =>
+                    `flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-2.5 rounded-lg text-sm font-medium transition-colors no-underline ${
+                      isActive
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`
+                  }
+                >
+                  {item.icon}
+                  {!collapsed && <span>{item.label}</span>}
+                </NavLink>
+              )}
+            </li>
+          ))}
+          {me?.is_superadmin && (
+            <li className="px-2 mt-2 pt-2 border-t border-slate-800">
               <NavLink
-                to={item.to}
-                end={item.end}
-                title={collapsed ? item.label : undefined}
-                aria-label={collapsed ? item.label : undefined}
+                to={ADMIN_ITEM.to}
+                title={collapsed ? ADMIN_ITEM.label : undefined}
+                aria-label={collapsed ? ADMIN_ITEM.label : undefined}
                 className={({ isActive }) =>
                   `flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-2.5 rounded-lg text-sm font-medium transition-colors no-underline ${
                     isActive
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      ? 'bg-indigo-700 text-white'
+                      : 'text-indigo-400 hover:text-white hover:bg-indigo-700/50'
                   }`
                 }
               >
-                {item.icon}
-                {!collapsed && <span>{item.label}</span>}
+                {ADMIN_ITEM.icon}
+                {!collapsed && <span>{ADMIN_ITEM.label}</span>}
               </NavLink>
             </li>
-          ))}
+          )}
         </ul>
       </div>
       <div className="border-t border-slate-800 px-2 py-3">

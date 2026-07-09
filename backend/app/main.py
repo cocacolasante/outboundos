@@ -38,8 +38,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Email Blaster",
+    title="OutboundOS",
     version="0.1.0",
+    docs_url="/api-docs",
+    redoc_url="/api-redoc",
 )
 
 

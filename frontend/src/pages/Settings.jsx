@@ -116,7 +116,13 @@ function ConnectedInboxesTab() {
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
-        <h2 className="text-lg font-semibold text-slate-900 m-0">Connected inboxes</h2>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 m-0">Connected inboxes</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Connect your email inbox via IMAP for reply tracking.
+            {' '}<a href="/docs#inbox" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:text-brand-700 font-medium">Setup guide &rarr;</a>
+          </p>
+        </div>
         <button
           onClick={openCreate}
           className="inline-flex items-center px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -252,7 +258,13 @@ function LinkedInAccountsTab() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-slate-900 m-0">LinkedIn accounts</h2>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 m-0">LinkedIn accounts</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Connect a LinkedIn account to enable outreach in your sequences.
+            {' '}<a href="/docs#linkedin-setup" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:text-brand-700 font-medium">Setup guide &rarr;</a>
+          </p>
+        </div>
         <button
           onClick={() => setModalAccount(null)}
           className="inline-flex items-center px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -800,6 +812,7 @@ function IntegrationsTab() {
         Bring your own keys: this workspace uses YOUR provider accounts for AI,
         email, enrichment and LinkedIn.  Keys are stored encrypted and shown
         masked; nothing runs against a provider until its key is added here.
+        {' '}<a href="/docs#anthropic" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:text-brand-700 font-medium">View setup guide &rarr;</a>
       </p>
       {isLoading && <p className="text-sm text-slate-400">Loading…</p>}
       {(integrations || []).map((integration) => (
@@ -1273,8 +1286,6 @@ export default function Settings() {
           { key: 'integrations', label: 'Integrations' },
           { key: 'linkedin', label: 'LinkedIn accounts' },
           { key: 'agent', label: 'Agent' },
-          { key: 'discovery', label: 'Discovery' },
-          { key: 'intent', label: 'Intent engine' },
           { key: 'api', label: 'API status' },
         ]}
       />
@@ -1284,8 +1295,6 @@ export default function Settings() {
       {tab === 'integrations' && <IntegrationsTab />}
       {tab === 'linkedin' && <LinkedInAccountsTab />}
       {tab === 'agent' && <AgentTab />}
-      {tab === 'discovery' && <DiscoveryTab />}
-      {tab === 'intent' && <IntentTab />}
       {tab === 'api' && <ApiStatusTab />}
     </div>
   );

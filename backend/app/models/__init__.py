@@ -41,6 +41,7 @@ from app.models.identity import (
 )
 from app.models.usage import UsageCounter
 from app.models.admin_audit import AdminAudit
+from app.models.invite_link import InviteLink
 from app.models.report import ReportDefinition
 from app.models.tenant_keys import KeyTestStatus, ProviderKind, TenantProviderKey
 from app.models.email_event import EmailEvent, EmailEventType
@@ -133,6 +134,7 @@ __all__ = [
     "Pipeline",
     "PipelineStage",
     "AdminAudit",
+    "InviteLink",
     "AuthToken",
     "AuthTokenPurpose",
     "BillingPlan",

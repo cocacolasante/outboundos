@@ -14,13 +14,13 @@ def _force_env(key: str, value: str) -> None:
 # Test database lives on the same postgres instance as dev, in a separate DB.
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://emailblaster:emailblaster@postgres:5432/emailblaster_test",
+    "postgresql+asyncpg://outboundos:outboundos@postgres:5432/outboundos_test",
 )
 ADMIN_DATABASE_URL = os.environ.get(
     "ADMIN_DATABASE_URL",
-    "postgresql+asyncpg://emailblaster:emailblaster@postgres:5432/postgres",
+    "postgresql+asyncpg://outboundos:outboundos@postgres:5432/postgres",
 )
-TEST_DB_NAME = "emailblaster_test"
+TEST_DB_NAME = "outboundos_test"
 
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 _force_env("REDIS_URL", "redis://localhost:6379/15")
